@@ -18,6 +18,7 @@ const config = {
 }
 
 // Modules
+require('./modules/embeds')(client);
 const Util = require('./modules/util')
 const BotListUpdater = require('./modules/bot-list-updater').BotListUpdater
 const Logger = new Util.Logger();

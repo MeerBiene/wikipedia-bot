@@ -9,29 +9,13 @@ const wiki = require('wikijs').default
 const _ = require('lodash')
 const got = require('got')
 const cheerio = require('cheerio')
+const messages = require('../localization/messages')
+const { apiUrl, headers, wiki_logo } = require('./Constants')
+
+const botlang = "en"
 
 const Logger = new Util.Logger()
 
-// All languages supported by the bot.
-// Before adding any additional API URLs, add an alias for this new language in commands/wiki.js.
-const apiUrl = {
-	// german
-	'de': 'https://de.wikipedia.org/w/api.php',
-	// english
-	'en': 'https://en.wikipedia.org/w/api.php',
-	// spanish
-	'es': 'https://es.wikipedia.org/w/api.php',
-	// french
-	'fr': 'https://fr.wikipedia.org/w/api.php',
-	// russian
-	'ru': 'https://ru.wikipedia.org/w/api.php',
-	// slovak
-	'sl': 'https://sl.wikipedia.org/w/api.php',
-	// turkish
-	'tr': 'https://tr.wikipedia.org/w/api.php',
-	// yiddish
-	'yi': 'https://yi.wikipedia.org/w/api.php',
-}
 
 /**
  * Function which gets data from Wikipedia to send a short summary into the channel.
@@ -42,33 +26,28 @@ const apiUrl = {
  *
  * */
 exports.getWikipediaShortSummary = async (msg, argument, lang) => {
-
+	apiUrl = apiUrl[lang]
 	// Get all search result when searching the argument
-	const search = await wiki({
-		apiUrl: apiUrl[lang],
-		headers: {
-			'User-Agent': 'wikipedia-bot-requests (https://julianyaman.de; julianyaman@posteo.eu) requests.js',
-		},
-	}).search(argument)
+	const search = await wiki({ apiUrl, headers }).search(argument)
 	// Get the wiki page of the first result
 	const wikiPage = await wiki({
-		apiUrl: apiUrl[lang],
-		headers: {
-			'User-Agent': 'wikipedia-bot-requests (https://julianyaman.de; julianyaman@posteo.eu) requests.js',
-		},
+		apiUrl,
+		headers
 	}).page(search.results[0]).catch(e => {
 		Logger.error(e)
 		msg.react('👎').catch(err => Logger.error(err))
-		msg.channel.send({
-			embed: {
-				color: 0xe74c3c,
-				description: 'Sorry, there was an error while trying to get the wiki page. ' +
-					'Please check your spelling or try another keyword.\n\n' +
-					'*Is the command still not working after many attempts?* \n' +
-					'*Please write an issue on GitHub or contact us on Discord! **(!info)***',
-			},
-		})
+		msg.channel.send(client.embed.error(messages.searcherror[botlang]))		
 	})
+			
+			// {
+			// embed: {
+			// 	color: 0xe74c3c,
+			// 	description: 'Sorry, there was an error while trying to get the wiki page. ' +
+			// 		'Please check your spelling or try another keyword.\n\n' +
+			// 		'*Is the command still not working after many attempts?* \n' +
+			// 		'*Please write an issue on GitHub or contact us on Discord! **(!info)***',
+			// },
+		
 
 	// Adding all information into one single array - all requests are now donw
 	const results = await Promise.all([
@@ -78,32 +57,21 @@ exports.getWikipediaShortSummary = async (msg, argument, lang) => {
 		wikiPage.summary(),
 	])
 
+	
 	// Shorten the summary to 768 chars...
 	let shortedSummary = results[3].split('\n')
 	shortedSummary = _.take(shortedSummary, 2)
 	shortedSummary = shortedSummary.toString().substring(0, 768) + '...'
 
+	const embedobject = {	
+		thumb: results[2],
+		title: results[0],
+		url: results[1],
+		desc: shortedSummary
+	};
+
 	// Sending the embed
-	await msg.channel.send({
-		embed: {
-			color: 3447003,
-			author: {
-				icon_url: 'https://upload.wikimedia.org/wikipedia/commons/6/63/Wikipedia-logo.png',
-				name: 'Wikipedia',
-			},
-			thumbnail: {
-				url: results[2],
-			},
-			title: results[0],
-			url: results[1],
-			description: shortedSummary,
-			timestamp: new Date(),
-			footer: {
-				icon_url: 'https://upload.wikimedia.org/wikipedia/commons/6/63/Wikipedia-logo.png',
-				text: 'Content by wikipedia.org - Do you like the bot? You can promote the bot with !vote or donate with !donate.',
-			},
-		},
-	})
+	await msg.channel.send(client.embed.shortSummary(embedobject));
 
 }
 
@@ -127,12 +95,12 @@ exports.getWikipediaShortInformation = (msg, argument) => {
 		}).catch(e => {
 			Logger.error(`[2] An error occurred while requesting the data from Wikipedia - Searched for: '${argument}' - Best Result: '${bestResult}'`)
 			Logger.errorChat(msg, e)
-			msg.reply('sorry, an error occurred while trying to execute your command. Please check your spelling or try another keyword.')
+			msg.reply(messages.generalerror[botlang]);
 		})
 	}).catch(e => {
 		Logger.error(`[1] An error occurred while requesting the data from Wikipedia - Searched for: '${argument}' - no result`)
 		Logger.errorChat(msg, e)
-		msg.reply('sorry, an error occurred while trying to execute your command. Please check your spelling or try another keyword.')
+		msg.reply(messages.generalerror[botlang]);
 	})
 
 }
@@ -168,33 +136,29 @@ exports.getWikipediaReferences = async (msg, search, range = 'all') => {
 			return;
 		}
 
-		if (maxRange - minRange + 1 > 10) {
-			await msg.reply('the maximum amount of references you can get is 10.')
-			return;
-		}
+		if (maxRange - minRange + 1 > 10) return await msg.reply(messages.maxreferror[botlang]);
 
 		const sourceSearch = await wiki({
-			headers: {
-				'User-Agent': 'wikipedia-bot-ref-req (https://julianyaman.de; julianyaman@posteo.eu) requests.js/ref',
-			},
+			headers
 		}).search(search)
 
 		const wikiPageSources = await wiki({
-			headers: {
-				'User-Agent': 'wikipedia-bot-ref-req (https://julianyaman.de; julianyaman@posteo.eu) requests.js/ref',
-			},
+			headers
 		}).page(sourceSearch.results[0]).catch(e => {
 			Logger.error(e)
 			msg.react('👎👎').catch(err => Logger.error(err))
-			msg.channel.send({
-				embed: {
-					color: 0xe74c3c,
-					description: 'Sorry, there was an error while trying to get the wiki page. ' +
-						'Please check your spelling or try another keyword.\n\n' +
-						'*Is the command still not working after many attempts?* \n' +
-						'*Please write an issue on GitHub or contact us on Discord! **(!info)***',
-				},
-			})
+			msg.channel.send(client.embed.error(messages.searcherror[botlang]))
+				
+				
+				// {
+				// embed: {
+				// 	color: 0xe74c3c,
+				// 	description: 'Sorry, there was an error while trying to get the wiki page. ' +
+				// 		'Please check your spelling or try another keyword.\n\n' +
+				// 		'*Is the command still not working after many attempts?* \n' +
+				// 		'*Please write an issue on GitHub or contact us on Discord! **(!info)***',
+				// },
+			
 		})
 
 		const sourceResults = await Promise.all([
