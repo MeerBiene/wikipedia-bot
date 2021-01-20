@@ -4,23 +4,22 @@ const
     messages = require('../localization/messages'),
     botlang = "en";
 
-module.exports = {
-    ... client,
-    embed: {
+module.exports = (client) => {
+    client.embed = {
         default: async () => {
 
         },
-        shortSummary: async (embedobject) => {
+        shortSummary: (embedobject) => {
             const embed = new MessageEmbed()
                 .setTimestamp()
-                .setColor("3447003")
+                .setColor("BLUE")
                 .setDescription(embedobject.desc)
                 .setAuthor("Wikipedia", wiki_logo)
                 .setFooter(messages.footertext[botlang], wiki_logo)
                 // nullchecks
                 embedobject.title ? embed.setTitle(embedobject.title) : 0;
                 embedobject.thumb ? embed.setThumbnail(embedobject.thumb) : 0;
-                embedobject.url ? embed.setUrl(embedobject.url): 0;
+                embedobject.url ? embed.setURL(embedobject.url): 0;
             return embed;
         },
         error: async (errormsg) => {

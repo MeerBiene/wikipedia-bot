@@ -1,4 +1,5 @@
 require('dotenv').config()
+const fs = require('fs')
 const Discord = require('discord.js')
 if (process.version.slice(1).split('.')[0] < 12) {
 	console.error('Node 12.0.0 or higher is required. Please upgrade Node.js on your computer / server.')
@@ -6,6 +7,7 @@ if (process.version.slice(1).split('.')[0] < 12) {
 }
 
 const Keyv = require('keyv');
+if (!fs.existsSync('./data/prefixes.sqlite')) return console.error("The prefix database file doesnt exist in the ./data directory")
 const prefixcache = new Keyv('sqlite://data/prefixes.sqlite')
 
 const client = new Discord.Client({ disableMentions: 'everyone' });
@@ -19,10 +21,10 @@ const config = {
 
 // Modules
 require('./modules/embeds')(client);
+require('./modules/requests')(client);
 const Util = require('./modules/util')
 const BotListUpdater = require('./modules/bot-list-updater').BotListUpdater
 const Logger = new Util.Logger();
-const fs = require('fs');
 
 let myShardId = undefined;
 
@@ -204,7 +206,7 @@ client.on('message', async message => {
 	if (!client.commands.has(command)) return;
 
 	try {
-		client.commands.get(command).execute(message, args, { PREFIX, VERSION });
+		client.commands.get(command).execute(client, message, args, { PREFIX, VERSION });
 	}
 	catch (error) {
 		console.error(error);
