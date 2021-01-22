@@ -1,5 +1,7 @@
-const Util = require('./../modules/util')
-const Logger = new Util.Logger();
+const 
+	Logger = new (require('./../modules/util')).Logger,
+	messages = require('../localization/messages'),
+	botlang = "en";
 
 /**
  * Command: wiki-number
@@ -8,7 +10,7 @@ const Logger = new Util.Logger();
 module.exports = {
 	name: 'wiki-info',
 	description: 'It helps you to get specific information about a specific topic (e.g. dates, numbers, etc.)',
-	execute(message, args, config) {
+	async execute(client, message, args, config) {
 
 		// Check in what type of channel the command was executed
 		if(message.channel.type === 'dm' || message.channel.type === 'group') {
@@ -18,9 +20,19 @@ module.exports = {
 			Logger.info(`${config.PREFIX + this.name} used on ${message.guild.name} (${message.guild.id}; ${message.guild.memberCount} users)`)
 		}
 
-		message.react('👎').catch((e) => {
-			Logger.error(`wiki-info Command -> !args[0] -> message.react -> catch e: ${e} | ${message.guild.name} (${message.guild.id})`)
-		})
+		if (!args[1]) return (client.badArgumentReaction(message), message.channel.send(client.embed.error(messages.nokeyworderror[botlang])))
+		
+		const info = await client.wiki.getShortInformation(args[1])
+
+		if (info.error) return await client.badArgumentReaction(message)
+		
+		await message.channel.send(client.embed.shortSummary({
+			desc: `**Name:** ${info.info.general.name} \n**Genus:** ${info.info.general.genus} \n**Species:** ${info.info.general.species}`,
+			thumb: await info.page.mainImage(),
+			title: info.page.title,
+			url: info.page.fullurl
+		}))
+
 
 		// // USAGE: !wiki-info [TYPE OF INFORMATION] [ARGUMENT]
 		// if (!args[1]) {

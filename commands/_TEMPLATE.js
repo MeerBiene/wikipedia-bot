@@ -9,7 +9,7 @@ const Logger = new Util.Logger();
 module.exports = {
 	name: 'NAME',
 	description: 'DESCRIPTION',
-	execute(message, args, config) {
+	execute(client, message, args, config) {
 		if(message.channel.type === 'dm' || message.channel.type === 'group') {
 			Logger.info(`${config.PREFIX + this.name} used in a private ${message.channel.type}.`)
 		}

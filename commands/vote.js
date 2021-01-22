@@ -8,7 +8,7 @@ const Logger = new Util.Logger();
 module.exports = {
 	name: 'vote',
 	description: '**SUPPORT US WITH A VOTE:** Vote for the bot on top.gg.',
-	execute(message, args, config) {
+	execute(client, message, args, config) {
 		// Check in what type of channel the command was executed
 		if(message.channel.type === 'dm' || message.channel.type === 'group') {
 			Logger.info(`${config.PREFIX + this.name} used in a private ${message.channel.type}.`)

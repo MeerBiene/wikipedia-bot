@@ -6,6 +6,9 @@ const Topgg = require('@top-gg/sdk')
 const topgg_api = new Topgg.Api(process.env.TOPGG_TOKEN)
 const translations = require('./../translations.json')
 
+const messages = require('../localization/messages')
+const botlang = "en"
+
 /**
  * Command: wiki
  * Description: The normal wiki command used for getting short summaries of something the user searched for.
@@ -107,10 +110,17 @@ module.exports = {
 			})
 		}
 		else {
-			let searchValue = args.toString().replace(/,/g, ' ')
-			searchValue = searchValue.replace(config.PREFIX + command + ' ', '')
+			let searchValue = args.toString().replace(/,/g, ' ').replace(config.PREFIX + command + ' ', '')
 
-			client.getWikipediaShortSummary(message, searchValue, requestLang).catch(e => Logger.error(e))
+			const returnedObject = await client.wiki.getSummary(searchValue, requestLang)
+
+			!returnedObject.error ? await message.channel.send(client.embed.shortSummary({
+				desc: returnedObject.results[3].substr(0, 768) + ".....",
+				thumb: returnedObject.results[2],
+				title: returnedObject.results[0],
+				url: returnedObject.results[1],
+			})) :  (await client.badArgumentReaction(message), message.channel.send(client.embed.error(messages.searcherror[botlang]))) 
+			
 		}
 
 	},

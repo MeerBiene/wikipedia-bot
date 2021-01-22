@@ -1,16 +1,25 @@
 require('dotenv').config()
 const fs = require('fs')
-const Discord = require('discord.js')
+const Discord = require('discord.js-light')
 if (process.version.slice(1).split('.')[0] < 12) {
 	console.error('Node 12.0.0 or higher is required. Please upgrade Node.js on your computer / server.')
 	process.exit(1)
 }
 
 const Keyv = require('keyv');
-if (!fs.existsSync('./data/prefixes.sqlite')) return console.error("The prefix database file doesnt exist in the ./data directory")
+if (!fs.existsSync('./data/prefixes.sqlite')) return console.error('The prefix database file doesnt exist in the ./data directory')
 const prefixcache = new Keyv('sqlite://data/prefixes.sqlite')
 
-const client = new Discord.Client({ disableMentions: 'everyone' });
+const client = new Discord.Client({ 
+	disableMentions: 'everyone', 
+	partials: ['MESSAGE', 'CHANNEL', 'REACTION'],
+	cacheGuilds: true,
+    cacheChannels: true,
+    cacheOverwrites: false,
+    cacheRoles: false,
+    cacheEmojis: false,
+    cachePresences: false
+});
 
 const config = {
 	ENVIRONMENT: process.env.NODE_ENV,
@@ -21,10 +30,9 @@ const config = {
 
 // Modules
 require('./modules/embeds')(client);
-require('./modules/requests')(client);
-const Util = require('./modules/util')
+require('./modules/wikifunctions')(client);
+const Logger = new (require('./modules/util')).Logger()
 const BotListUpdater = require('./modules/bot-list-updater').BotListUpdater
-const Logger = new Util.Logger();
 
 let myShardId = undefined;
 

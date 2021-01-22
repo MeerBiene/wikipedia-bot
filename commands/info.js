@@ -9,7 +9,7 @@ const bot = require('../bot')
 module.exports = {
 	name: 'info',
 	description: 'Gives you some information about the bot.',
-	async execute(message, args, config) {
+	async execute(client, message, args, config) {
 		// Check in what type of channel the command was executed
 		if(message.channel.type === 'dm' || message.channel.type === 'group') {
 			Logger.info(`${config.PREFIX + this.name} used in a private ${message.channel.type}.`)

@@ -7,12 +7,11 @@
 const Util = require('./util')
 const wiki = require('wikijs').default
 const _ = require('lodash')
-const got = require('got')
-const cheerio = require('cheerio')
+
 const messages = require('../localization/messages')
 let { apiUrl, headers, wiki_logo } = require('./Constants')
 
-const botlang = "en"
+const botlang = 'en'
 
 const Logger = new Util.Logger()
 
@@ -28,55 +27,60 @@ const Logger = new Util.Logger()
 
 module.exports = (client) => {
 
-		client.getWikipediaShortSummary = async (msg, argument, lang) => {
-			apiUrl = apiUrl[lang]
-			// Get all search result when searching the argument
-			const search = await wiki({ apiUrl, headers }).search(argument)
-			// Get the wiki page of the first result
-			const wikiPage = await wiki({
-				apiUrl,
-				headers
-			}).page(search.results[0]).catch(e => {
-				Logger.error(e)
-				msg.react('👎').catch(err => Logger.error(err))
-				msg.channel.send(client.embed.error(messages.searcherror[botlang]))
-			})
+	client.getWikipediaShortSummary = async (msg, argument, lang) => {
+		apiUrl = apiUrl[lang]
+		// Get all search result when searching the argument
+		const search = await wiki({ apiUrl, headers }).search(argument)
+		// Get the wiki page of the first result
+		const wikiPage = await wiki({
+			apiUrl,
+			headers,
+		}).page(search.results[0]).catch(e => {
+			Logger.error(e)
+			msg.react('👎').catch(err => Logger.error(err))
+			msg.channel.send(client.embed.error(messages.searcherror[botlang]))
+		})
 
-			// {
-			// embed: {
-			// 	color: 0xe74c3c,
-			// 	description: 'Sorry, there was an error while trying to get the wiki page. ' +
-			// 		'Please check your spelling or try another keyword.\n\n' +
-			// 		'*Is the command still not working after many attempts?* \n' +
-			// 		'*Please write an issue on GitHub or contact us on Discord! **(!info)***',
-			// },
-
-
-			// Adding all information into one single array - all requests are now donw
-			const results = await Promise.all([
-				wikiPage.raw.title,
-				wikiPage.raw.fullurl,
-				wikiPage.mainImage(),
-				wikiPage.summary(),
-			])
+		// {
+		// embed: {
+		// 	color: 0xe74c3c,
+		// 	description: 'Sorry, there was an error while trying to get the wiki page. ' +
+		// 		'Please check your spelling or try another keyword.\n\n' +
+		// 		'*Is the command still not working after many attempts?* \n' +
+		// 		'*Please write an issue on GitHub or contact us on Discord! **(!info)***',
+		// },
 
 
-			// Shorten the summary to 768 chars...
-			let shortedSummary = results[3].split('\n')
-			shortedSummary = _.take(shortedSummary, 2)
-			shortedSummary = shortedSummary.toString().substring(0, 768) + '...'
+		// Adding all information into one single array - all requests are now donw
+		const results = await Promise.all([
+			wikiPage.raw.title,
+			wikiPage.raw.fullurl,
+			wikiPage.mainImage(),
+			wikiPage.summary(),
+		])
 
-			const embedobject = {
-				thumb: results[2],
-				title: results[0],
-				url: results[1],
-				desc: shortedSummary
-			};
 
-			// Sending the embed
-			await msg.channel.send(client.embed.shortSummary(embedobject));
-
+		console.log(results[3])
+		const paginationSummaries = []
+		while (results[3].length > 768) {
+			paginationSummaries.push(results[3].substr(0, 768))
+			results[3] = results[3].substr(768);
 		}
+		
+		// Shorten the summary to 768 chars...
+		let shortedSummary = results[3].split('\n')
+		shortedSummary = _.take(shortedSummary, 2)
+		shortedSummary = shortedSummary.toString().substring(0, 768) + '...'
+
+		const embedobject = {
+			thumb: results[2],
+			title: results[0],
+			url: results[1],
+			desc: shortedSummary,
+		};
+
+		// Sending the embed
+		await msg.channel.send(client.embed.shortSummary(embedobject));
 
 	}
 
@@ -90,7 +94,7 @@ module.exports = (client) => {
  * @param {String} argument - Argument sent by the user (!wiki-info [info] [argument])
  *
  * */
-exports.getWikipediaShortInformation = (msg, argument) => {
+client.getWikipediaShortInformation = (msg, argument) => {
 
 	wiki().search(argument).then(data => {
 		// Getting the first result of the search results
@@ -121,7 +125,7 @@ exports.getWikipediaShortInformation = (msg, argument) => {
  * @param range - The range of how many sources the user want
  *
  * */
-exports.getWikipediaReferences = async (msg, search, range = 'all') => {
+client.getWikipediaReferences = async (msg, search, range = 'all') => {
 	// check if a range was given
 	if (range !== 'all') {
 		// split range into min and max range
@@ -147,11 +151,11 @@ exports.getWikipediaReferences = async (msg, search, range = 'all') => {
 		if (maxRange - minRange + 1 > 10) return await msg.reply(messages.maxreferror[botlang]);
 
 		const sourceSearch = await wiki({
-			headers
+			headers,
 		}).search(search)
 
 		const wikiPageSources = await wiki({
-			headers
+			headers,
 		}).page(sourceSearch.results[0]).catch(e => {
 			Logger.error(e)
 			msg.react('👎👎').catch(err => Logger.error(err))
@@ -212,10 +216,13 @@ exports.getWikipediaReferences = async (msg, search, range = 'all') => {
 				// getting the title of the reference
 				try {
 					const response = await got(source)
+					console.log("response", response)
 					// eslint-disable-next-line prefer-const
 					let $ = cheerio.load(response.body)
+					console.log("body", $)
 					// eslint-disable-next-line prefer-const
 					let title = $('title').text()
+					console.log("title", title)
 
 					sourceToUser[0] = {
 						name: `Reference ${minRange + 1}`,
@@ -348,4 +355,5 @@ exports.getWikipediaReferences = async (msg, search, range = 'all') => {
 			},
 		})
 	}
+}
 }

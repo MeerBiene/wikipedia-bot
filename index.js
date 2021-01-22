@@ -1,5 +1,5 @@
 // Startup file
-const { ShardingManager } = require('discord.js')
+const { ShardingManager } = require('discord.js-light')
 require('dotenv').config()
 
 // Manager
